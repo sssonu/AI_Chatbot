@@ -1,10 +1,10 @@
-# Subspace Chatbot Application
+# AI Chatbot Application
 
 A modern chatbot application built with React, Nhost Auth, Hasura GraphQL, and n8n workflows, integrated with OpenRouter AI.
 
 ## 🚀 Live Demo
 
-**Deployed Application**: [https://subspace-chatbot-assignment.netlify.app](https://subspace-chatbot-assignment.netlify.app)
+**Deployed Application**: [Click Here](https://sub-space-chat-bot.netlify.app/)
 
 ## 📋 Features
 
@@ -261,28 +261,3 @@ subscription MessagesSubscription($chatId: uuid!) {
 - ✅ Real-time updates via subscriptions
 - ✅ Hosted on Netlify
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 📞 Support
-
-For questions or issues, please contact:
-- Email: your-email@example.com
-- GitHub Issues: [Repository Issues](https://github.com/your-repo/issues)
-
----
-
-**Assignment Submission Format:**
-```
-Name: Your Name
-Contact: Your Phone Number
-Deployed: https://your-app.netlify.app/
-```
