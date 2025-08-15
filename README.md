@@ -4,7 +4,7 @@ A modern chatbot application built with React, Nhost Auth, Hasura GraphQL, and n
 
 ## 🚀 Live Demo
 
-**Deployed Application**: [Click Here]((https://is.gd/chatbot_netlify))
+**Deployed Application**: [Click Here]((https://is.gd/chatbot_netlify)
 
 ## 📋 Features
 
