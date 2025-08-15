@@ -1,0 +1,29 @@
+# Netlify Deployment Configuration
+
+# Build settings
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# Environment variables (set these in Netlify dashboard)
+# VITE_NHOST_SUBDOMAIN=kkocyugxtcomocinxnpz
+# VITE_NHOST_REGION=ap-south-1
+# VITE_HASURA_ENDPOINT=https://kkocyugxtcomocinxnpz.hasura.ap-south-1.nhost.run/v1/graphql
+# VITE_HASURA_WS_ENDPOINT=wss://kkocyugxtcomocinxnpz.hasura.ap-south-1.nhost.run/v1/graphql
+# VITE_N8N_WEBHOOK_URL=https://your-production-webhook.com/webhook/chatbot
+
+# Redirect rules for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.nhost.run wss://*.nhost.run https://*.n8n.cloud; font-src 'self';"

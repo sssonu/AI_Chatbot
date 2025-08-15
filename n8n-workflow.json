@@ -1,0 +1,265 @@
+{
+  "name": "Subspace Chatbot Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/webhook/chatbot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "chatbot-webhook"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Validate required fields and user authentication\nconst input = $input.first();\nconst body = input.json.body;\n\nif (!body.input || !body.input.chatId || !body.input.message) {\n  throw new Error('Missing required fields: chatId and message');\n}\n\nif (!body.session_variables || !body.session_variables['x-hasura-user-id']) {\n  throw new Error('User not authenticated');\n}\n\nreturn [\n  {\n    json: {\n      chatId: body.input.chatId,\n      message: body.input.message,\n      userId: body.session_variables['x-hasura-user-id'],\n      userRole: body.session_variables['x-hasura-role'] || 'user'\n    }\n  }\n];"
+      },
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.HASURA_ENDPOINT }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "requestMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-hasura-admin-secret",
+              "value": "={{ $env.HASURA_ADMIN_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "jsonBody": "{\n  \"query\": \"query VerifyChatOwnership($chatId: uuid!, $userId: uuid!) { chats_by_pk(id: $chatId) { id user_id } }\",\n  \"variables\": {\n    \"chatId\": \"{{ $json.chatId }}\",\n    \"userId\": \"{{ $json.userId }}\"\n  }\n}"
+      },
+      "id": "verify-chat-ownership",
+      "name": "Verify Chat Ownership",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.data.chats_by_pk.user_id }}",
+              "rightValue": "={{ $('Validate Input').first().json.userId }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-ownership",
+      "name": "Check Ownership",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "requestMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.OPENROUTER_API_KEY }}"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "{{ $env.APP_URL || 'http://localhost:3000' }}"
+            },
+            {
+              "name": "X-Title",
+              "value": "Subspace Chatbot"
+            }
+          ]
+        },
+        "sendBody": true,
+        "jsonBody": "{\n  \"model\": \"mistralai/mistral-7b-instruct:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful AI assistant. Provide clear, concise, and helpful responses.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $('Validate Input').first().json.message }}\"\n    }\n  ],\n  \"max_tokens\": 500,\n  \"temperature\": 0.7\n}"
+      },
+      "id": "call-openrouter-api",
+      "name": "Call OpenRouter API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 180]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.HASURA_ENDPOINT }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "requestMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-hasura-admin-secret",
+              "value": "={{ $env.HASURA_ADMIN_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "jsonBody": "{\n  \"query\": \"mutation InsertBotMessage($chatId: uuid!, $content: String!, $userId: uuid!) { insert_messages_one(object: { chat_id: $chatId, content: $content, is_bot: true, user_id: $userId }) { id content created_at } }\",\n  \"variables\": {\n    \"chatId\": \"{{ $('Validate Input').first().json.chatId }}\",\n    \"content\": \"{{ $json.choices[0].message.content }}\",\n    \"userId\": \"{{ $('Validate Input').first().json.userId }}\"\n  }\n}"
+      },
+      "id": "save-bot-response",
+      "name": "Save Bot Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 180]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{{ $json.choices[0].message.content }}"
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 180]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 400,
+        "responseBody": "{\n  \"success\": false,\n  \"message\": \"{{ $json.error || 'Access denied or error occurred' }}\",\n  \"response\": null\n}"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 420]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Verify Chat Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Chat Ownership": {
+      "main": [
+        [
+          {
+            "node": "Check Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Ownership": {
+      "main": [
+        [
+          {
+            "node": "Call OpenRouter API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenRouter API": {
+      "main": [
+        [
+          {
+            "node": "Save Bot Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Bot Response": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "chatbot-workflow",
+  "tags": []
+}
