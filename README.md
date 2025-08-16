@@ -247,17 +247,3 @@ subscription MessagesSubscription($chatId: uuid!) {
 }
 ```
 
-## 🎯 Assignment Requirements Checklist
-
-- ✅ Email Sign In/Sign Up using Nhost Auth
-- ✅ Chat system using Hasura GraphQL queries, mutations, and subscriptions
-- ✅ Chatbot powered by n8n connected to Hasura Actions
-- ✅ OpenRouter integration (free model)
-- ✅ Row-Level Security implementation
-- ✅ Proper permissions for user role only
-- ✅ GraphQL-only communication (no REST)
-- ✅ Authenticated Hasura Action
-- ✅ n8n workflow with user validation
-- ✅ Real-time updates via subscriptions
-- ✅ Hosted on Netlify
-
